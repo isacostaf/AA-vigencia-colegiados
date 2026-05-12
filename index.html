@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vigência Colegiados</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="logo">
+            <img src="logo.png" alt="Ministério da Defesa">
+        </header>
+        
+        <main class="content">
+            <img src="titulo.png" alt="Vigência Colegiados" class="title-image">
+            <p class="instructions">
+                Insira o arquivo .xlsx contendo todos os colegiados. 
+                Atenção: É necessário que os dados da tabela comecem na terceira linha 
+                e que a coluna com as portarias esteja na terceira coluna.
+            </p>
+            <button id="uploadBtn" class="upload-btn">Inserir Arquivo</button>
+            <input type="file" id="fileInput" accept=".xlsx" style="display: none;">
+        </main>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>

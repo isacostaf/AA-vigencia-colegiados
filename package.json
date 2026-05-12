@@ -1,8 +1,10 @@
 {
   "name": "aa-vigencia-colegiados",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -10,6 +12,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
     "puppeteer": "^24.43.1",
     "xlsx": "^0.18.5"
   },

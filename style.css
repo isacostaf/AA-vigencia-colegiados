@@ -1,0 +1,135 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Open Sans', sans-serif;
+    background-image: url('fundo.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+    color: #424242;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 40px;
+}
+
+.logo {
+    position: absolute;
+    top: 0px;
+    left: 40px;
+}
+
+.logo img {
+    max-width: 200px;
+    height: auto;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    flex: 1;
+    padding: 0 20px;
+}
+
+.title-image {
+    max-width: 50%;
+    height: auto;
+    margin-bottom: 0px;
+}
+
+.instructions {
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 400;
+    font-size: 1.0rem;
+    color: #424242;
+    max-width: 600px;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.upload-btn {
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 400;
+    font-size: 1rem;
+    color: #424242;
+    background-color: transparent;
+    border: 2px solid #424242;
+    border-radius: 25px;
+    padding: 12px 30px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.upload-btn:hover {
+    background-color: #424242;
+    color: white;
+}
+
+.upload-btn:active {
+    transform: scale(0.98);
+}
+
+.download-btn {
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 400;
+    font-size: 1rem;
+    color: white;
+    background-color: #424242;
+    border: 2px solid #424242;
+    border-radius: 25px;
+    padding: 12px 30px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    outline: none;
+    margin-top: 20px;
+}
+
+.download-btn:hover {
+    background-color: transparent;
+    color: #424242;
+}
+
+.download-btn:active {
+    transform: scale(0.98);
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+    
+    .logo {
+        position: relative;
+        top: auto;
+        left: auto;
+        text-align: center;
+        margin-bottom: 0px;
+    }
+    
+    .logo img {
+        max-width: 150px;
+    }
+    
+    .title-image {
+        max-width: 40%;
+        height: auto;
+        margin-bottom: 0px;
+    }
+    
+    .instructions {
+        font-size: 1rem;
+        margin-bottom: 5px;
+    }
+}
