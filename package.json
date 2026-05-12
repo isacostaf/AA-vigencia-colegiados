@@ -11,5 +11,13 @@
   "description": "",
   "dependencies": {
     "puppeteer": "^24.43.1"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isacostaf/AA-vigencia-colegiados.git"
+  },
+  "bugs": {
+    "url": "https://github.com/isacostaf/AA-vigencia-colegiados/issues"
+  },
+  "homepage": "https://github.com/isacostaf/AA-vigencia-colegiados#readme"
 }
