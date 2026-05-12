@@ -10,7 +10,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "puppeteer": "^24.43.1"
+    "puppeteer": "^24.43.1",
+    "xlsx": "^0.18.5"
   },
   "repository": {
     "type": "git",

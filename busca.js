@@ -94,6 +94,8 @@ async function checar_vigencia(page, numero_portaria) {
     }, numero_portaria);
 
     console.log('Status da norma:', resultado);
+
+    return resultado;
 }
 
 async function executar_busca(texto) {
@@ -113,9 +115,12 @@ async function executar_busca(texto) {
 
     await busca_colegiado(page, numero_portaria, data_portaria);
 
-    await checar_vigencia(page, numero_portaria);
+    const resultado = await checar_vigencia(page, numero_portaria);
+
+    return resultado;
 
     // await browser.close();
+    
 }
 
 module.exports = {
