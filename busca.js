@@ -110,6 +110,11 @@ async function checar_vigencia(page, numero_portaria) {
 
 async function executar_busca(texto) {
 
+    // verifica se começa com Decreto
+    if (texto.trim().toLowerCase().startsWith('decreto')) {
+        return 'Decreto: ainda não processamos decretos.';
+    }
+
     // extrai dados
     const numero_portaria = extrair_numero_portaria(texto);
     const data_portaria = extrair_data_portaria(texto);
