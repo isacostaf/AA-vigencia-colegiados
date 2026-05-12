@@ -48,9 +48,16 @@ async function busca_colegiado(page, numero_portaria, ano_portaria) {
     await page.click('#sc_b_pesq_bot');
 
     // espera resultado carregar
-    await page.waitForNavigation({
-        waitUntil: 'networkidle2'
-    });
+    try {
+        await page.waitForNavigation({
+            waitUntil: 'networkidle2',
+            timeout: 60000 // 60 segundos
+        });
+    } catch (error) {
+        console.log('Timeout na navegação, tentando continuar...');
+        // Tenta esperar um pouco mais para ver se a página carrega
+        await page.waitForTimeout(3000);
+    }
 
     console.log('Busca realizada!');
 }
@@ -111,20 +118,28 @@ async function executar_busca(texto) {
 
     // abre navegador
     const browser = await puppeteer.launch({
-        headless: false
+        headless: true
     });
 
     const page = await browser.newPage();
 
-    await busca_colegiado(page, numero_portaria, data_portaria);
+    try {
+        await busca_colegiado(page, numero_portaria, data_portaria);
+        const resultado = await checar_vigencia(page, numero_portaria);
+        await browser.close();
+        return resultado;
+    } catch (error) {
+        await browser.close();
+        throw error;
+    }
 
-    const resultado = await checar_vigencia(page, numero_portaria);
-
-    return resultado;
-
-    // await browser.close();
-    
 }
+
+// Função para fechar navegador em caso de erro
+executar_busca.fechar_navegador = async function() {
+    // Esta função será implementada se necessário
+    console.log('Tentativa de limpeza de navegador...');
+};
 
 module.exports = {
     executar_busca

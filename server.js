@@ -77,11 +77,17 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
             console.log(`Processando linha ${i + 1}`);
 
-            // executa busca usando o texto da planilha
-            const resultado = await executar_busca(texto);
+            try {
+                // executa busca usando o texto da planilha
+                const resultado = await executar_busca(texto);
 
-            // escreve resultado na coluna 4
-            linha[3] = resultado;
+                // escreve resultado na coluna 4
+                linha[3] = resultado;
+            } catch (error) {
+                console.error(`Erro na linha ${i + 1}:`, error.message);
+                // escreve erro na coluna 4
+                linha[3] = `Erro: ${error.message}`;
+            }
         }
 
         // cria nova planilha
