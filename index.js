@@ -50,6 +50,8 @@ async function checar_vigencia(page, numero_portaria) {
         // pega todas as linhas da tabela
         const linhas = document.querySelectorAll('#sc_grid_body table tbody tr');
 
+        const resultados_encontrados = [];
+
         for (const linha of linhas) {
 
             // pega a coluna do número
@@ -61,11 +63,24 @@ async function checar_vigencia(page, numero_portaria) {
                 // pega o status
                 const status = linha.querySelector('.css_codstatus_grid_line span');
 
-                return status ? status.innerText.trim() : null;
+                resultados_encontrados.push(
+                    status ? status.innerText.trim() : null
+                );
             }
         }
 
-        return null;
+        // nenhum resultado encontrado
+        if (resultados_encontrados.length === 0) {
+            return 'Nenhum resultado encontrado';
+        }
+
+        // mais de um resultado encontrado
+        if (resultados_encontrados.length > 1) {
+            return 'Inconclusivo - há mais de um resultado';
+        }
+
+        // apenas um resultado
+        return resultados_encontrados[0];
 
     }, numero_portaria);
 
