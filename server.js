@@ -8,19 +8,8 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configuração do multer para upload de arquivos
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const uploadDir = 'uploads';
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir);
-        }
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, 'uploaded_' + Date.now() + path.extname(file.originalname));
-    }
-});
+// Configuração do multer para upload de arquivos usando memória
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
     storage: storage,
@@ -35,7 +24,6 @@ const upload = multer({
 
 // Servir arquivos estáticos
 app.use(express.static(__dirname));
-app.use('/uploads', express.static('uploads'));
 
 // Rota principal
 app.get('/', (req, res) => {
@@ -49,10 +37,10 @@ app.post('/upload', upload.single('file'), async (req, res) => {
             return res.status(400).json({ error: 'Nenhum arquivo enviado' });
         }
 
-        console.log(`Processando arquivo: ${req.file.filename}`);
+        console.log(`Processando arquivo: ${req.file.originalname}`);
 
-        // abre arquivo excel
-        const workbook = xlsx.readFile(req.file.path);
+        // abre arquivo excel da memória
+        const workbook = xlsx.read(req.file.buffer);
 
         // pega primeira aba
         const nome_aba = workbook.SheetNames[0];
@@ -95,32 +83,23 @@ app.post('/upload', upload.single('file'), async (req, res) => {
         const novo_workbook = xlsx.utils.book_new();
         xlsx.utils.book_append_sheet(novo_workbook, nova_aba, 'Resultado');
 
-        // nome do arquivo de resultado
-        const resultFileName = `resultado_${Date.now()}.xlsx`;
-        const resultPath = path.join('uploads', resultFileName);
-
-        // salva arquivo novo
-        xlsx.writeFile(novo_workbook, resultPath);
-
-        // Remove arquivo original após processamento
-        fs.unlinkSync(req.file.path);
+        // gera arquivo em memória
+        const resultBuffer = xlsx.write(novo_workbook, { type: 'buffer', bookType: 'xlsx' });
 
         console.log('Arquivo gerado com sucesso!');
+
+        // Converte buffer para base64 para envio
+        const resultBase64 = resultBuffer.toString('base64');
 
         res.json({
             success: true,
             message: 'Arquivo processado com sucesso',
-            downloadUrl: `/uploads/${resultFileName}`,
-            fileName: resultFileName
+            fileData: resultBase64,
+            fileName: `resultado_${Date.now()}.xlsx`
         });
 
     } catch (error) {
         console.error('Erro ao processar arquivo:', error);
-        
-        // Remove arquivo em caso de erro
-        if (req.file && fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
-        }
 
         res.status(500).json({ 
             error: 'Erro ao processar arquivo',
@@ -129,47 +108,14 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     }
 });
 
-// Rota para download do arquivo processado
-app.get('/download/:filename', (req, res) => {
-    const filename = req.params.filename;
-    const filePath = path.join(__dirname, 'uploads', filename);
 
-    if (fs.existsSync(filePath)) {
-        res.download(filePath, (err) => {
-            if (err) {
-                console.error('Erro no download:', err);
-                res.status(500).json({ error: 'Erro ao fazer download do arquivo' });
-            } else {
-                // Remove arquivo após download
-                fs.unlinkSync(filePath);
-            }
-        });
-    } else {
-        res.status(404).json({ error: 'Arquivo não encontrado' });
-    }
-});
+// Para desenvolvimento local
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`Servidor rodando na porta ${PORT}`);
+        console.log(`Acesse http://localhost:${PORT}`);
+    });
+}
 
-// Limpeza periódica de arquivos antigos
-setInterval(() => {
-    const uploadDir = 'uploads';
-    if (fs.existsSync(uploadDir)) {
-        const files = fs.readdirSync(uploadDir);
-        const now = Date.now();
-        
-        files.forEach(file => {
-            const filePath = path.join(uploadDir, file);
-            const stats = fs.statSync(filePath);
-            
-            // Remove arquivos com mais de 1 hora
-            if (now - stats.mtime.getTime() > 3600000) {
-                fs.unlinkSync(filePath);
-                console.log(`Arquivo antigo removido: ${file}`);
-            }
-        });
-    }
-}, 600000); // Executa a cada 10 minutos
-
-app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
-    console.log(`Acesse http://localhost:${PORT}`);
-});
+// Export para Vercel
+module.exports = app;

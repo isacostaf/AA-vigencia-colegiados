@@ -1,4 +1,12 @@
-const puppeteer = require('puppeteer');
+let puppeteer;
+let chrome;
+
+if (process.env.NODE_ENV === 'production') {
+    puppeteer = require('puppeteer-core');
+    chrome = require('chrome-aws-lambda');
+} else {
+    puppeteer = require('puppeteer');
+}
 
 function extrair_numero_portaria(texto) {
 
@@ -122,9 +130,34 @@ async function executar_busca(texto) {
     console.log('Número extraído:', numero_portaria);
 
     // abre navegador
-    const browser = await puppeteer.launch({
-        headless: true
-    });
+    let browserOptions;
+    
+    if (process.env.NODE_ENV === 'production') {
+        // Configuração para Vercel
+        browserOptions = {
+            args: chrome.args,
+            executablePath: await chrome.executablePath,
+            headless: chrome.headless,
+            ignoreHTTPSErrors: true,
+        };
+    } else {
+        // Configuração para desenvolvimento local
+        browserOptions = {
+            headless: true,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--single-process',
+                '--disable-gpu'
+            ]
+        };
+    }
+    
+    const browser = await puppeteer.launch(browserOptions);
 
     const page = await browser.newPage();
 

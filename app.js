@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 downloadBtn.className = 'download-btn';
                 downloadBtn.textContent = 'Baixar Resultados';
                 downloadBtn.onclick = function() {
-                    window.location.href = data.downloadUrl;
+                    downloadFile(data.fileData, data.fileName);
                 };
                 
                 // Inserir botão de download após o botão de upload
@@ -90,6 +90,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         fileInput.value = '';
+    }
+    
+    function downloadFile(base64Data, fileName) {
+        // Converte base64 para blob
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        
+        // Cria link de download
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Limpa
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
     }
     
     // Prevenir comportamento padrão de arrastar e soltar
