@@ -14,7 +14,21 @@ function extrair_numero_portaria(texto) {
     return null;
 }
 
-async function busca_colegiado(page, numero_portaria) {
+function extrair_data_portaria(texto) {
+
+    // procura anos entre 1900-2099
+    const regex = /\b(19|20)\d{2}\b/;
+
+    const resultado = texto.match(regex);
+
+    if (resultado) {
+        return resultado[0];
+    }
+
+    return null;
+}
+
+async function busca_colegiado(page, numero_portaria, ano_portaria) {
 
     // entra no site
     await page.goto('https://mdlegis.defesa.gov.br/pesquisar_normas/', {
@@ -27,6 +41,9 @@ async function busca_colegiado(page, numero_portaria) {
 
     // digita o número da portaria
     await page.type('#SC_numero', numero_portaria);
+
+    // digita o ano da portaria
+    await page.type('#SC_ano', ano_portaria);
 
     // clica no botão buscar
     await page.click('#sc_b_pesq_bot');
@@ -94,6 +111,7 @@ async function checar_vigencia(page, numero_portaria) {
 
     // extrai somente o número
     const numero_portaria = extrair_numero_portaria(texto);
+    const data_portaria = extrair_data_portaria(texto);
 
     console.log('Número extraído:', numero_portaria);
 
@@ -104,7 +122,7 @@ async function checar_vigencia(page, numero_portaria) {
 
     const page = await browser.newPage();
 
-    await busca_colegiado(page, numero_portaria);
+    await busca_colegiado(page, numero_portaria, data_portaria);
 
     await checar_vigencia(page, numero_portaria);
 
