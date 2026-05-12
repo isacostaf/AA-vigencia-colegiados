@@ -71,14 +71,17 @@ async function checar_vigencia(page, numero_portaria) {
 
             const numero = linha.querySelector('.css_numero_grid_line span');
 
-            if (numero && numero.innerText.trim() === numero_portaria) {
+            if (
+                numero &&
+                numero.innerText.replace('.', '').trim() ===
+                numero_portaria.replace('.', '').trim()
+            ) {
+                    const status = linha.querySelector('.css_codstatus_grid_line span');
 
-                const status = linha.querySelector('.css_codstatus_grid_line span');
-
-                resultados_encontrados.push(
-                    status ? status.innerText.trim() : null
-                );
-            }
+                    resultados_encontrados.push(
+                        status ? status.innerText.trim() : null
+                    );
+                }
         }
 
         if (resultados_encontrados.length === 0) {
