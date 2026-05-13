@@ -1,19 +1,22 @@
 const express = require('express');
 const multer = require('multer');
-const xlsx = require('xlsx');
+const ExcelJS = require('exceljs');
 const { executar_busca } = require('./busca');
+const { getTmpPath } = require('./paths');
 const path = require('path');
 const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const uploadRoot = getTmpPath();
+const uploadDir = getTmpPath('uploads');
+
 // Configuração do multer para upload de arquivos
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        const uploadDir = 'uploads';
         if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir);
+            fs.mkdirSync(uploadDir, { recursive: true });
         }
         cb(null, uploadDir);
     },
@@ -34,12 +37,13 @@ const upload = multer({
 });
 
 // Servir arquivos estáticos
-app.use(express.static(__dirname));
-app.use('/uploads', express.static('uploads'));
+const publicDir = path.join(__dirname, '..', 'public');
+app.use(express.static(publicDir));
+app.use('/uploads', express.static(uploadDir));
 
 // Rota principal
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(publicDir, 'index.html'));
 });
 
 // Rota para upload e processamento do arquivo
@@ -52,15 +56,35 @@ app.post('/upload', upload.single('file'), async (req, res) => {
         console.log(`Processando arquivo: ${req.file.filename}`);
 
         // abre arquivo excel
-        const workbook = xlsx.readFile(req.file.path);
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.readFile(req.file.path);
 
         // pega primeira aba
-        const nome_aba = workbook.SheetNames[0];
-        const aba = workbook.Sheets[nome_aba];
+        const aba = workbook.worksheets[0];
 
         // transforma em array
-        const dados = xlsx.utils.sheet_to_json(aba, {
-            header: 1
+        const dados = [];
+        aba.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+            const linha = [];
+            row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                let valor = cell.value;
+
+                if (valor && typeof valor === 'object') {
+                    if (typeof valor.text === 'string') {
+                        valor = valor.text;
+                    } else if (Array.isArray(valor.richText)) {
+                        valor = valor.richText.map((parte) => parte.text).join('');
+                    } else if (typeof valor.result !== 'undefined') {
+                        valor = valor.result;
+                    } else if (typeof valor.formula !== 'undefined') {
+                        valor = valor.formula;
+                    }
+                }
+
+                linha[colNumber - 1] = valor;
+            });
+
+            dados[rowNumber - 1] = linha;
         });
 
         // percorre linhas
@@ -91,16 +115,19 @@ app.post('/upload', upload.single('file'), async (req, res) => {
         }
 
         // cria nova planilha
-        const nova_aba = xlsx.utils.aoa_to_sheet(dados);
-        const novo_workbook = xlsx.utils.book_new();
-        xlsx.utils.book_append_sheet(novo_workbook, nova_aba, 'Resultado');
+        const novo_workbook = new ExcelJS.Workbook();
+        const nova_aba = novo_workbook.addWorksheet('Resultado');
+
+        dados.forEach((linha) => {
+            nova_aba.addRow(linha);
+        });
 
         // nome do arquivo de resultado
         const resultFileName = `resultado_${Date.now()}.xlsx`;
-        const resultPath = path.join('uploads', resultFileName);
+        const resultPath = path.join(uploadDir, resultFileName);
 
         // salva arquivo novo
-        xlsx.writeFile(novo_workbook, resultPath);
+        await novo_workbook.xlsx.writeFile(resultPath);
 
         // Remove arquivo original após processamento
         fs.unlinkSync(req.file.path);
@@ -132,7 +159,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 // Rota para download do arquivo processado
 app.get('/download/:filename', (req, res) => {
     const filename = req.params.filename;
-    const filePath = path.join(__dirname, 'uploads', filename);
+    const filePath = path.join(uploadDir, filename);
 
     if (fs.existsSync(filePath)) {
         res.download(filePath, (err) => {
@@ -151,7 +178,6 @@ app.get('/download/:filename', (req, res) => {
 
 // Limpeza periódica de arquivos antigos
 setInterval(() => {
-    const uploadDir = 'uploads';
     if (fs.existsSync(uploadDir)) {
         const files = fs.readdirSync(uploadDir);
         const now = Date.now();

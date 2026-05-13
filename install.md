@@ -1,7 +1,7 @@
 npm init -y
 npm install puppeteer
-npm install xlsx
+npm install exceljs
 
 
 execute:
-node index.js
+node scripts/index.js

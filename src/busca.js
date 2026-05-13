@@ -1,4 +1,4 @@
-const puppeteer = require('puppeteer');
+const { createBrowser } = require('./browserService');
 
 function extrair_numero_portaria(texto) {
 
@@ -122,9 +122,7 @@ async function executar_busca(texto) {
     console.log('Número extraído:', numero_portaria);
 
     // abre navegador
-    const browser = await puppeteer.launch({
-        headless: true
-    });
+    const browser = await createBrowser();
 
     const page = await browser.newPage();
 
