@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const ExcelJS = require('exceljs');
 const { executar_busca } = require('./busca');
+const { createBrowser } = require('./browserService');
 const { getTmpPath } = require('./paths');
 const path = require('path');
 const fs = require('fs');
@@ -87,31 +88,39 @@ app.post('/upload', upload.single('file'), async (req, res) => {
             dados[rowNumber - 1] = linha;
         });
 
-        // percorre linhas
-        for (let i = 2; i < dados.length; i++) {
-            const linha = dados[i];
+        // percorre linhas usando um unico browser/page
+        const browser = await createBrowser();
+        const page = await browser.newPage();
+        page.setDefaultTimeout(30000);
 
-            // pega coluna 3
-            const texto = linha[2];
+        try {
+            for (let i = 2; i < dados.length; i++) {
+                const linha = dados[i];
 
-            // ignora linha vazia
-            if (!texto) {
-                continue;
+                // pega coluna 3
+                const texto = linha[2];
+
+                // ignora linha vazia
+                if (!texto) {
+                    continue;
+                }
+
+                console.log(`Processando linha ${i + 1}`);
+
+                try {
+                    // executa busca usando o texto da planilha
+                    const resultado = await executar_busca(texto, { browser, page });
+
+                    // escreve resultado na coluna 4
+                    linha[3] = resultado;
+                } catch (error) {
+                    console.error(`Erro na linha ${i + 1}:`, error.message);
+                    // escreve erro na coluna 4
+                    linha[3] = `Erro: ${error.message}`;
+                }
             }
-
-            console.log(`Processando linha ${i + 1}`);
-
-            try {
-                // executa busca usando o texto da planilha
-                const resultado = await executar_busca(texto);
-
-                // escreve resultado na coluna 4
-                linha[3] = resultado;
-            } catch (error) {
-                console.error(`Erro na linha ${i + 1}:`, error.message);
-                // escreve erro na coluna 4
-                linha[3] = `Erro: ${error.message}`;
-            }
+        } finally {
+            await browser.close();
         }
 
         // cria nova planilha

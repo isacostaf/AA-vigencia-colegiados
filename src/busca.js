@@ -49,14 +49,9 @@ async function busca_colegiado(page, numero_portaria, ano_portaria) {
 
     // espera resultado carregar
     try {
-        await page.waitForNavigation({
-            waitUntil: 'networkidle2',
-            timeout: 60000 // 60 segundos
-        });
+        await page.waitForSelector('#sc_grid_body', { timeout: 30000 });
     } catch (error) {
-        console.log('Timeout na navegação, tentando continuar...');
-        // Tenta esperar um pouco mais para ver se a página carrega
-        await page.waitForTimeout(3000);
+        console.log('Timeout na busca, tentando continuar...');
     }
 
     console.log('Busca realizada!');
@@ -65,7 +60,7 @@ async function busca_colegiado(page, numero_portaria, ano_portaria) {
 async function checar_vigencia(page, numero_portaria) {
 
     // espera a tabela carregar
-    await page.waitForSelector('#sc_grid_body');
+    await page.waitForSelector('#sc_grid_body', { timeout: 30000 });
 
     // pega os dados da tabela
     const resultado = await page.evaluate((numero_portaria) => {
@@ -108,7 +103,7 @@ async function checar_vigencia(page, numero_portaria) {
     return resultado;
 }
 
-async function executar_busca(texto) {
+async function executar_busca(texto, context = {}) {
 
     // verifica se começa com Decreto
     if (texto.trim().toLowerCase().startsWith('decreto')) {
@@ -119,20 +114,31 @@ async function executar_busca(texto) {
     const numero_portaria = extrair_numero_portaria(texto);
     const data_portaria = extrair_data_portaria(texto);
 
+    if (!numero_portaria || !data_portaria) {
+        return 'Nao foi possivel extrair numero/ano da portaria.';
+    }
+
     console.log('Número extraído:', numero_portaria);
 
     // abre navegador
-    const browser = await createBrowser();
+    const browser = context.browser || await createBrowser();
+    const page = context.page || await browser.newPage();
 
-    const page = await browser.newPage();
+    if (!context.page) {
+        page.setDefaultTimeout(30000);
+    }
 
     try {
         await busca_colegiado(page, numero_portaria, data_portaria);
         const resultado = await checar_vigencia(page, numero_portaria);
-        await browser.close();
+        if (!context.browser) {
+            await browser.close();
+        }
         return resultado;
     } catch (error) {
-        await browser.close();
+        if (!context.browser) {
+            await browser.close();
+        }
         throw error;
     }
 
