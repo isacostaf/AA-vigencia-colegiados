@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
         uploadBtn.textContent = 'Processando...';
 
         const pollInterval = setInterval(() => {
-            fetch(`/job/${jobId}`)
+            fetch(`/job/${jobId}?t=${Date.now()}`)
                 .then(response => response.json())
                 .then(data => {
                     const progressBar = document.getElementById('progressBar');

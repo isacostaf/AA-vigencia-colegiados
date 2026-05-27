@@ -223,6 +223,11 @@ app.get('/job/:jobId', (req, res) => {
         return res.status(404).json({ error: 'Job não encontrado' });
     }
 
+    // Prevenir caching para garantir progresso em tempo real
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+
     res.json({
         id: job.id,
         status: job.status,
