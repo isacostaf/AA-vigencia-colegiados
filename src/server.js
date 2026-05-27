@@ -10,78 +10,136 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-
-
-
-
 const uploadRoot = getTmpPath();
 const uploadDir = getTmpPath('uploads');
 
-// Configuração do multer para upload de arquivos
+// =========================
+// GARANTE PASTA TEMP
+// =========================
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// =========================
+// MULTER
+// =========================
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        }
         cb(null, uploadDir);
     },
+
     filename: function (req, file, cb) {
         cb(null, 'uploaded_' + Date.now() + path.extname(file.originalname));
     }
 });
 
-const upload = multer({ 
+const upload = multer({
     storage: storage,
+
     fileFilter: function (req, file, cb) {
-        if (path.extname(file.originalname).toLowerCase() === '.xlsx') {
+
+        const ext = path.extname(file.originalname).toLowerCase();
+
+        if (ext === '.xlsx') {
             cb(null, true);
         } else {
-            cb(new Error('Apenas arquivos .xlsx são permitidos'), false);
+            cb(new Error('Apenas arquivos .xlsx são permitidos'));
         }
     }
 });
 
-// Servir arquivos estáticos
+// =========================
+// STATIC
+// =========================
 const publicDir = path.join(__dirname, '..', 'public');
+
 app.use(express.static(publicDir));
 app.use('/uploads', express.static(uploadDir));
 
-// Rota principal
+// =========================
+// HOME
+// =========================
 app.get('/', (req, res) => {
     res.sendFile(path.join(publicDir, 'index.html'));
 });
 
-// Rota para upload e processamento do arquivo
+// =========================
+// UPLOAD
+// =========================
 app.post('/upload', upload.single('file'), async (req, res) => {
+
+    console.log('====================================');
+    console.log('1 - ROTA /UPLOAD INICIADA');
+    console.log('====================================');
+
     try {
+
+        // =========================
+        // VALIDA ARQUIVO
+        // =========================
         if (!req.file) {
-            return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+
+            console.error('Nenhum arquivo enviado');
+
+            return res.status(400).json({
+                success: false,
+                error: 'Nenhum arquivo enviado'
+            });
         }
 
-        console.log(`Processando arquivo: ${req.file.filename}`);
+        console.log('2 - ARQUIVO RECEBIDO');
+        console.log(req.file);
 
-        // abre arquivo excel
+        // =========================
+        // ABRE EXCEL
+        // =========================
+        console.log('3 - ABRINDO EXCEL');
+
         const workbook = new ExcelJS.Workbook();
+
         await workbook.xlsx.readFile(req.file.path);
 
-        // pega primeira aba
+        console.log('4 - EXCEL ABERTO');
+
+        // =========================
+        // PRIMEIRA ABA
+        // =========================
         const aba = workbook.worksheets[0];
 
-        // transforma em array
+        if (!aba) {
+            throw new Error('Nenhuma aba encontrada no Excel');
+        }
+
+        // =========================
+        // TRANSFORMA EM ARRAY
+        // =========================
         const dados = [];
+
         aba.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+
             const linha = [];
+
             row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+
                 let valor = cell.value;
 
                 if (valor && typeof valor === 'object') {
+
                     if (typeof valor.text === 'string') {
                         valor = valor.text;
+
                     } else if (Array.isArray(valor.richText)) {
-                        valor = valor.richText.map((parte) => parte.text).join('');
+
+                        valor = valor.richText
+                            .map((parte) => parte.text)
+                            .join('');
+
                     } else if (typeof valor.result !== 'undefined') {
+
                         valor = valor.result;
+
                     } else if (typeof valor.formula !== 'undefined') {
+
                         valor = valor.formula;
                     }
                 }
@@ -92,113 +150,119 @@ app.post('/upload', upload.single('file'), async (req, res) => {
             dados[rowNumber - 1] = linha;
         });
 
-        // percorre linhas usando um unico browser/page
+        console.log(`5 - TOTAL DE LINHAS: ${dados.length}`);
 
-
-
+        // =========================
+        // BROWSER
+        // =========================
+        console.log('6 - INICIANDO BROWSER');
 
         const browser = await createBrowser();
+
+        console.log('7 - BROWSER INICIADO');
+
         const page = await browser.newPage();
+
         page.setDefaultTimeout(30000);
 
         try {
+
+            // =========================
+            // PROCESSA LINHAS
+            // =========================
             for (let i = 2; i < dados.length; i++) {
+
                 const linha = dados[i];
 
-                // pega coluna 3
                 const texto = linha[2];
 
-                // ignora linha vazia
                 if (!texto) {
+
+                    console.log(`Linha ${i + 1} vazia`);
 
                     continue;
                 }
 
-                console.log(`Processando linha ${i + 1}`);
+                console.log(`8 - PROCESSANDO LINHA ${i + 1}`);
+                console.log(`Texto: ${texto}`);
 
                 try {
-                    // executa busca usando o texto da planilha
-                    const resultado = await executar_busca(texto, { browser, page });
 
-                    // escreve resultado na coluna 4
+                    const resultado = await executar_busca(
+                        texto,
+                        { browser, page }
+                    );
+
                     linha[3] = resultado;
-                } catch (error) {
-                    console.error(`Erro na linha ${i + 1}:`, error.message);
-                    // escreve erro na coluna 4
-                    linha[3] = `Erro: ${error.message}`;
+
+                    console.log(`Linha ${i + 1} processada`);
+
+                } catch (linhaError) {
+
+                    console.error(`ERRO NA LINHA ${i + 1}`);
+                    console.error(linhaError);
+                    console.error(linhaError.stack);
+
+                    linha[3] = `Erro: ${linhaError.message}`;
                 }
-
-
-
-
-
-
-
             }
+
         } finally {
+
+            console.log('9 - FECHANDO BROWSER');
+
             await browser.close();
         }
 
-        // cria nova planilha
+        // =========================
+        // NOVA PLANILHA
+        // =========================
+        console.log('10 - GERANDO NOVA PLANILHA');
+
         const novo_workbook = new ExcelJS.Workbook();
+
         const nova_aba = novo_workbook.addWorksheet('Resultado');
 
         dados.forEach((linha) => {
             nova_aba.addRow(linha);
         });
 
-        // nome do arquivo de resultado
+        // =========================
+        // SALVA RESULTADO
+        // =========================
         const resultFileName = `resultado_${Date.now()}.xlsx`;
+
         const resultPath = path.join(uploadDir, resultFileName);
 
-        // salva arquivo novo
+        console.log('11 - SALVANDO RESULTADO');
+        console.log(resultPath);
+
         await novo_workbook.xlsx.writeFile(resultPath);
 
-        // Remove arquivo original após processamento
-        fs.unlinkSync(req.file.path);
+        console.log('12 - RESULTADO SALVO');
 
+        // =========================
+        // REMOVE ORIGINAL
+        // =========================
+        try {
 
+            if (fs.existsSync(req.file.path)) {
 
+                fs.unlinkSync(req.file.path);
 
+                console.log('13 - ARQUIVO ORIGINAL REMOVIDO');
+            }
 
+        } catch (removeError) {
 
+            console.error('Erro removendo original');
+            console.error(removeError);
+        }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        console.log('Arquivo gerado com sucesso!');
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        // =========================
+        // SUCESSO
+        // =========================
+        console.log('14 - PROCESSAMENTO FINALIZADO');
 
         res.json({
             success: true,
@@ -208,100 +272,137 @@ app.post('/upload', upload.single('file'), async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Erro ao processar arquivo:', error);
-        
-        // Remove arquivo em caso de erro
-        if (req.file && fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
+
+        console.error('====================================');
+        console.error('ERRO REAL DO SERVIDOR');
+        console.error('====================================');
+
+        console.error('Mensagem:', error.message);
+        console.error('Stack:', error.stack);
+        console.error('Erro completo:', error);
+
+        if (req.file) {
+            console.error('Arquivo enviado:', req.file);
         }
 
-        res.status(500).json({ 
-            error: 'Erro ao processar arquivo',
-            details: error.message 
+        // remove arquivo em caso de erro
+        try {
+
+            if (req.file && fs.existsSync(req.file.path)) {
+
+                fs.unlinkSync(req.file.path);
+
+                console.log('Arquivo removido após erro');
+            }
+
+        } catch (deleteError) {
+
+            console.error('Erro removendo arquivo');
+            console.error(deleteError);
+        }
+
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            stack: error.stack
         });
     }
 });
 
-// Rota para download do arquivo processado
+// =========================
+// DOWNLOAD
+// =========================
 app.get('/download/:filename', (req, res) => {
+
     const filename = req.params.filename;
+
     const filePath = path.join(uploadDir, filename);
 
+    console.log('DOWNLOAD:', filePath);
+
     if (fs.existsSync(filePath)) {
+
         res.download(filePath, (err) => {
+
             if (err) {
-                console.error('Erro no download:', err);
-                res.status(500).json({ error: 'Erro ao fazer download do arquivo' });
-            } else {
-                // Remove arquivo após download
+
+                console.error('ERRO DOWNLOAD');
+                console.error(err);
+
+                return res.status(500).json({
+                    success: false,
+                    error: 'Erro ao baixar arquivo'
+                });
+            }
+
+            try {
+
                 fs.unlinkSync(filePath);
+
+                console.log('Arquivo removido após download');
+
+            } catch (removeError) {
+
+                console.error(removeError);
             }
         });
+
     } else {
-        res.status(404).json({ error: 'Arquivo não encontrado' });
+
+        console.error('Arquivo não encontrado');
+
+        res.status(404).json({
+            success: false,
+            error: 'Arquivo não encontrado'
+        });
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 });
 
-// Limpeza periódica de arquivos antigos
+// =========================
+// LIMPEZA
+// =========================
 setInterval(() => {
-    if (fs.existsSync(uploadDir)) {
+
+    try {
+
+        if (!fs.existsSync(uploadDir)) {
+            return;
+        }
+
         const files = fs.readdirSync(uploadDir);
+
         const now = Date.now();
 
         files.forEach(file => {
+
             const filePath = path.join(uploadDir, file);
+
             const stats = fs.statSync(filePath);
 
-            // Remove arquivos com mais de 1 hora
+            // 1 hora
             if (now - stats.mtime.getTime() > 3600000) {
+
                 fs.unlinkSync(filePath);
-                console.log(`Arquivo antigo removido: ${file}`);
+
+                console.log(`Arquivo removido: ${file}`);
             }
         });
-    }
-}, 600000); // Executa a cada 10 minutos
 
+    } catch (cleanupError) {
+
+        console.error('ERRO LIMPEZA');
+        console.error(cleanupError);
+    }
+
+}, 600000);
+
+// =========================
+// START
+// =========================
 app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
-    console.log(`Acesse http://localhost:${PORT}`);
+
+    console.log('====================================');
+    console.log(`SERVIDOR RODANDO NA PORTA ${PORT}`);
+    console.log(`UPLOAD DIR: ${uploadDir}`);
+    console.log('====================================');
 });
