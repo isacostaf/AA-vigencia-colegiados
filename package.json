@@ -1,10 +1,11 @@
 {
   "name": "aa-vigencia-colegiados",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "postinstall": "npx puppeteer browsers install chrome",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -12,10 +13,12 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@sparticuz/chromium": "^148.0.0",
+    "exceljs": "^4.4.0",
     "express": "^4.18.2",
     "multer": "^1.4.5-lts.1",
-    "puppeteer": "^24.43.1",
-    "xlsx": "^0.18.5"
+    "puppeteer": "^24.7.2",
+    "puppeteer-core": "^24.43.1"
   },
   "repository": {
     "type": "git",
