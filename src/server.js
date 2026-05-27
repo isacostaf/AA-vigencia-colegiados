@@ -10,9 +10,9 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Sistema de jobs em memória (para Vercel serverless)
-const jobs = new Map();
-const CHUNK_SIZE = 10; // Processar 10 linhas por chunk
+
+
+
 
 const uploadRoot = getTmpPath();
 const uploadDir = getTmpPath('uploads');
@@ -51,17 +51,18 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(publicDir, 'index.html'));
 });
 
-// Função para processar job em chunks
-async function processJob(jobId, filePath) {
+// Rota para upload e processamento do arquivo
+app.post('/upload', upload.single('file'), async (req, res) => {
     try {
-        const job = jobs.get(jobId);
-        job.status = 'processing';
-        job.progress = 0;
-        job.total = 0;
+        if (!req.file) {
+            return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+        }
+
+        console.log(`Processando arquivo: ${req.file.filename}`);
 
         // abre arquivo excel
         const workbook = new ExcelJS.Workbook();
-        await workbook.xlsx.readFile(filePath);
+        await workbook.xlsx.readFile(req.file.path);
 
         // pega primeira aba
         const aba = workbook.worksheets[0];
@@ -91,11 +92,11 @@ async function processJob(jobId, filePath) {
             dados[rowNumber - 1] = linha;
         });
 
-        // Calcular total de linhas a processar
-        const totalLinhas = dados.length - 2; // Desconsiderar as 2 primeiras linhas
-        job.total = totalLinhas;
+        // percorre linhas usando um unico browser/page
 
-        // percorre linhas em chunks
+
+
+
         const browser = await createBrowser();
         const page = await browser.newPage();
         page.setDefaultTimeout(30000);
@@ -109,11 +110,11 @@ async function processJob(jobId, filePath) {
 
                 // ignora linha vazia
                 if (!texto) {
-                    job.progress++;
+
                     continue;
                 }
 
-                console.log(`[Job ${jobId}] Processando linha ${i + 1}/${dados.length}`);
+                console.log(`Processando linha ${i + 1}`);
 
                 try {
                     // executa busca usando o texto da planilha
@@ -122,17 +123,17 @@ async function processJob(jobId, filePath) {
                     // escreve resultado na coluna 4
                     linha[3] = resultado;
                 } catch (error) {
-                    console.error(`[Job ${jobId}] Erro na linha ${i + 1}:`, error.message);
+                    console.error(`Erro na linha ${i + 1}:`, error.message);
                     // escreve erro na coluna 4
                     linha[3] = `Erro: ${error.message}`;
                 }
 
-                job.progress++;
 
-                // Pausa breve entre chunks para evitar timeout
-                if (job.progress % CHUNK_SIZE === 0) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                }
+
+
+
+
+
             }
         } finally {
             await browser.close();
@@ -147,126 +148,138 @@ async function processJob(jobId, filePath) {
         });
 
         // nome do arquivo de resultado
-        const resultFileName = `resultado_${jobId}.xlsx`;
+        const resultFileName = `resultado_${Date.now()}.xlsx`;
         const resultPath = path.join(uploadDir, resultFileName);
 
         // salva arquivo novo
         await novo_workbook.xlsx.writeFile(resultPath);
 
         // Remove arquivo original após processamento
-        fs.unlinkSync(filePath);
+        fs.unlinkSync(req.file.path);
 
-        console.log(`[Job ${jobId}] Arquivo gerado com sucesso!`);
 
-        job.status = 'completed';
-        job.resultPath = resultPath;
-        job.resultFileName = resultFileName;
-    } catch (error) {
-        console.error(`[Job ${jobId}] Erro ao processar:`, error);
-        job.status = 'error';
-        job.error = error.message;
 
-        // Remove arquivo em caso de erro
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-        }
-    }
-}
 
-// Rota para upload e processamento do arquivo
-app.post('/upload', upload.single('file'), async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'Nenhum arquivo enviado' });
-        }
 
-        console.log(`Recebendo arquivo: ${req.file.filename}`);
 
-        // Criar job ID
-        const jobId = Date.now().toString();
 
-        // Criar objeto do job
-        jobs.set(jobId, {
-            id: jobId,
-            status: 'pending',
-            progress: 0,
-            total: 0,
-            createdAt: new Date()
-        });
 
-        // Iniciar processamento em background
-        processJob(jobId, req.file.path).catch(error => {
-            console.error(`Erro no job ${jobId}:`, error);
-        });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        console.log('Arquivo gerado com sucesso!');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         res.json({
             success: true,
-            jobId: jobId,
-            message: 'Job criado com sucesso. Use o jobId para acompanhar o progresso.'
+            message: 'Arquivo processado com sucesso',
+            downloadUrl: `/uploads/${resultFileName}`,
+            fileName: resultFileName
         });
 
     } catch (error) {
-        console.error('Erro ao criar job:', error);
-        res.status(500).json({
-            error: 'Erro ao criar job',
-            details: error.message
+        console.error('Erro ao processar arquivo:', error);
+        
+        // Remove arquivo em caso de erro
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+
+        res.status(500).json({ 
+            error: 'Erro ao processar arquivo',
+            details: error.message 
         });
     }
 });
 
-// Rota para verificar status do job
-app.get('/job/:jobId', (req, res) => {
-    const jobId = req.params.jobId;
-    const job = jobs.get(jobId);
+// Rota para download do arquivo processado
+app.get('/download/:filename', (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(uploadDir, filename);
 
-    if (!job) {
-        return res.status(404).json({ error: 'Job não encontrado' });
+    if (fs.existsSync(filePath)) {
+        res.download(filePath, (err) => {
+            if (err) {
+                console.error('Erro no download:', err);
+                res.status(500).json({ error: 'Erro ao fazer download do arquivo' });
+            } else {
+                // Remove arquivo após download
+                fs.unlinkSync(filePath);
+            }
+        });
+    } else {
+        res.status(404).json({ error: 'Arquivo não encontrado' });
     }
 
-    // Prevenir caching para garantir progresso em tempo real
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-    res.set('Pragma', 'no-cache');
-    res.set('Expires', '0');
 
-    res.json({
-        id: job.id,
-        status: job.status,
-        progress: job.progress,
-        total: job.total,
-        percentage: job.total > 0 ? Math.round((job.progress / job.total) * 100) : 0,
-        error: job.error || null,
-        resultFileName: job.resultFileName || null
-    });
-});
 
-// Rota para download do arquivo processado por jobId
-app.get('/download/:jobId', (req, res) => {
-    const jobId = req.params.jobId;
-    const job = jobs.get(jobId);
 
-    if (!job) {
-        return res.status(404).json({ error: 'Job não encontrado' });
-    }
 
-    if (job.status !== 'completed') {
-        return res.status(400).json({ error: 'Job ainda não foi concluído', status: job.status });
-    }
 
-    if (!job.resultPath || !fs.existsSync(job.resultPath)) {
-        return res.status(404).json({ error: 'Arquivo de resultado não encontrado' });
-    }
 
-    res.download(job.resultPath, job.resultFileName, (err) => {
-        if (err) {
-            console.error('Erro no download:', err);
-            res.status(500).json({ error: 'Erro ao fazer download do arquivo' });
-        } else {
-            // Remove arquivo após download
-            fs.unlinkSync(job.resultPath);
-            // Remove job após download
-            jobs.delete(jobId);
-        }
-    });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 });
 
 // Limpeza periódica de arquivos antigos
@@ -274,11 +287,11 @@ setInterval(() => {
     if (fs.existsSync(uploadDir)) {
         const files = fs.readdirSync(uploadDir);
         const now = Date.now();
-        
+
         files.forEach(file => {
             const filePath = path.join(uploadDir, file);
             const stats = fs.statSync(filePath);
-            
+
             // Remove arquivos com mais de 1 hora
             if (now - stats.mtime.getTime() > 3600000) {
                 fs.unlinkSync(filePath);
