@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 
 async function createBrowser() {
 
-    const browser = await puppeteer.launch({
+    return await puppeteer.launch({
 
         headless: true,
 
@@ -13,8 +13,6 @@ async function createBrowser() {
             '--disable-setuid-sandbox'
         ]
     });
-
-    return browser;
 }
 
 module.exports = {
