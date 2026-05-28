@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 10000);
 
             } else {
-                throw new Error(data.error || 'Erro desconhecido');
+                throw new Error(data.details || data.error || 'Erro desconhecido');
             }
         })
 
