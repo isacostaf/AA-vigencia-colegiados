@@ -1,22 +1,13 @@
-const chromium = require('@sparticuz/chromium');
-const puppeteerCore = require('puppeteer-core');
-const { isVercel } = require('./config');
+const puppeteer = require('puppeteer');
 
 async function createBrowser() {
-    if (isVercel()) {
-        // Use serverless-friendly Chromium on Vercel.
-        const executablePath = await chromium.executablePath();
-        return puppeteerCore.launch({
-            args: chromium.args,
-            defaultViewport: chromium.defaultViewport,
-            executablePath,
-            headless: chromium.headless
-        });
-    }
-
-    // Use full Puppeteer locally.
-    const puppeteer = require('puppeteer');
-    return puppeteer.launch({ headless: true });
+    return await puppeteer.launch({
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox'
+        ]
+    });
 }
 
 module.exports = {
