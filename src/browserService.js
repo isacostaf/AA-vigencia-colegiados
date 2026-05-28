@@ -12,9 +12,10 @@ async function createBrowser() {
 
         const versions = fs.readdirSync(cacheDir);
 
-        if (versions.length > 0) {
+        const chromeFolder =
+            versions.find(v => v.startsWith('linux-'));
 
-            const chromeFolder = versions[0];
+        if (chromeFolder) {
 
             executablePath = path.join(
                 cacheDir,
