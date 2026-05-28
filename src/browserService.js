@@ -6,8 +6,6 @@ async function createBrowser() {
 
         headless: true,
 
-        executablePath: puppeteer.executablePath(),
-
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox'
