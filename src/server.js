@@ -7,6 +7,8 @@ const { getTmpPath } = require('./paths');
 const path = require('path');
 const fs = require('fs');
 
+console.log('PUPPETEER CACHE:', '/opt/render/.cache/puppeteer/chrome');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 

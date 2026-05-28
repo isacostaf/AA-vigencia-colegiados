@@ -26,17 +26,26 @@ async function createBrowser() {
         }
     }
 
-    console.log('Chrome path:', executablePath);
+    console.log('USANDO CHROME:', executablePath);
+
+    if (!executablePath || !fs.existsSync(executablePath)) {
+        throw new Error(
+            `Chrome não encontrado em: ${executablePath}`
+        );
+    }
 
     return await puppeteer.launch({
 
+        executablePath,
+
         headless: true,
 
-        executablePath,
+        browser: 'chrome',
 
         args: [
             '--no-sandbox',
-            '--disable-setuid-sandbox'
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage'
         ]
     });
 }
