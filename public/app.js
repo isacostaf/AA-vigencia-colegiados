@@ -50,13 +50,51 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.jobId) {
-                console.log('Job criado:', data.jobId);
-                pollJobStatus(data.jobId);
+            if (data.success) {
+
+                uploadBtn.textContent = 'Arquivo processado!';
+                uploadBtn.style.backgroundColor = '#424242';
+                uploadBtn.style.color = 'white';
+
+                const downloadBtn = document.createElement('button');
+
+                downloadBtn.id = 'downloadBtn';
+                downloadBtn.className = 'download-btn';
+
+                downloadBtn.textContent = 'Baixar Resultados';
+
+                downloadBtn.onclick = function() {
+                    window.location.href = data.downloadUrl;
+                };
+
+                uploadBtn.parentNode.insertBefore(
+                    downloadBtn,
+                    uploadBtn.nextSibling
+                );
+
+                // reativa botão
+                uploadBtn.disabled = false;
+                uploadBtn.style.cursor = 'pointer';
+
+                // reset automático
+                setTimeout(() => {
+
+                    uploadBtn.textContent = 'Inserir Arquivo';
+                    uploadBtn.style.backgroundColor = 'transparent';
+                    uploadBtn.style.color = '#424242';
+
+                    if (downloadBtn) {
+                        downloadBtn.remove();
+                    }
+
+                }, 10000);
+
             } else {
                 throw new Error(data.error || 'Erro desconhecido');
             }
         })
+
+
         .catch(error => {
             console.error('Erro:', error);
             alert('Erro ao processar arquivo: ' + error.message);
@@ -70,95 +108,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         fileInput.value = '';
-    }
-
-    function pollJobStatus(jobId) {
-        // Criar indicador de progresso
-        const progressIndicator = document.createElement('div');
-        progressIndicator.id = 'progressIndicator';
-        progressIndicator.style.marginTop = '20px';
-        progressIndicator.style.textAlign = 'center';
-        progressIndicator.innerHTML = `
-            <div style="font-size: 0.9rem; color: #424242; margin-bottom: 10px;">
-                Processando... <span id="progressText">0%</span>
-            </div>
-            <div style="width: 100%; max-width: 300px; height: 8px; background-color: #e0e0e0; border-radius: 4px; margin: 0 auto; overflow: hidden;">
-                <div id="progressBar" style="width: 0%; height: 100%; background-color: #424242; transition: width 0.3s ease;"></div>
-            </div>
-        `;
-        uploadBtn.parentNode.insertBefore(progressIndicator, uploadBtn.nextSibling);
-
-        uploadBtn.textContent = 'Processando...';
-
-        const pollInterval = setInterval(() => {
-            fetch(`/job/${jobId}?t=${Date.now()}`)
-                .then(response => response.json())
-                .then(data => {
-                    const progressBar = document.getElementById('progressBar');
-                    const progressText = document.getElementById('progressText');
-
-                    if (progressBar && progressText) {
-                        progressBar.style.width = `${data.percentage}%`;
-                        progressText.textContent = `${data.percentage}% (${data.progress}/${data.total} linhas)`;
-                    }
-
-                    if (data.status === 'completed') {
-                        clearInterval(pollInterval);
-                        showDownloadButton(jobId, data.resultFileName);
-                    } else if (data.status === 'error') {
-                        clearInterval(pollInterval);
-                        alert('Erro ao processar arquivo: ' + data.error);
-                        resetUploadButton();
-                        if (progressIndicator) {
-                            progressIndicator.remove();
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Erro ao verificar status:', error);
-                    clearInterval(pollInterval);
-                    alert('Erro ao verificar status do processamento');
-                    resetUploadButton();
-                    if (progressIndicator) {
-                        progressIndicator.remove();
-                    }
-                });
-        }, 2000); // Poll a cada 2 segundos
-    }
-
-    function showDownloadButton(jobId, fileName) {
-        const progressIndicator = document.getElementById('progressIndicator');
-        if (progressIndicator) {
-            progressIndicator.remove();
-        }
-
-        uploadBtn.textContent = 'Arquivo processado!';
-        uploadBtn.style.backgroundColor = '#424242';
-        uploadBtn.style.color = 'white';
-
-        const downloadBtn = document.createElement('button');
-        downloadBtn.id = 'downloadBtn';
-        downloadBtn.className = 'download-btn';
-        downloadBtn.textContent = 'Baixar Resultados';
-        downloadBtn.onclick = function() {
-            window.location.href = `/download/${jobId}`;
-        };
-
-        uploadBtn.parentNode.insertBefore(downloadBtn, uploadBtn.nextSibling);
-
-        // Reset após 10 segundos
-        setTimeout(function() {
-            resetUploadButton();
-            downloadBtn.remove();
-        }, 10000);
-    }
-
-    function resetUploadButton() {
-        uploadBtn.textContent = 'Inserir Arquivo';
-        uploadBtn.style.backgroundColor = 'transparent';
-        uploadBtn.style.color = '#424242';
-        uploadBtn.disabled = false;
-        uploadBtn.style.cursor = 'pointer';
     }
     
     // Prevenir comportamento padrão de arrastar e soltar
