@@ -12,13 +12,14 @@ body {
     background-repeat: no-repeat;
     min-height: 100vh;
     color: #424242;
+    overflow: hidden;
 }
 
 .container {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    padding: 40px;
+    padding: 28px 40px;
 }
 
 .logo {
@@ -28,46 +29,46 @@ body {
 }
 
 .logo img {
-    max-width: 300px;
+    max-width: 250px;
     height: auto;
 }
 
 .content {
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    padding-top: 120px;
+    justify-content: center;
     align-items: center;
     text-align: center;
     flex: 1;
     padding: 0 20px;
+    gap: 10px;
 }
 
 .title-image {
-    max-width: 50%;
+    max-width: 42%;
     height: auto;
-    margin-bottom: -40px;
+    margin-bottom: -10px;
 }
 
 .instructions {
     font-family: 'Open Sans', sans-serif;
     font-weight: 400;
-    font-size: 1.0rem;
+    font-size: 0.95rem;
     color: #424242;
-    max-width: 800px;
-    line-height: 1.6;
-    margin-bottom: 30px;
+    max-width: 760px;
+    line-height: 1.5;
+    margin-bottom: 14px;
 }
 
 .upload-btn {
     font-family: 'Open Sans', sans-serif;
     font-weight: 400;
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: #424242;
     background-color: transparent;
     border: 2px solid #424242;
     border-radius: 25px;
-    padding: 12px 30px;
+    padding: 10px 26px;
     cursor: pointer;
     transition: all 0.3s ease;
     outline: none;
@@ -86,7 +87,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
     width: 100%;
 }
 
@@ -94,12 +95,12 @@ body {
     display: inline-block;
     font-family: 'Open Sans', sans-serif;
     font-weight: 400;
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: white;
     background-color: #424242;
     border: 2px solid #424242;
     border-radius: 25px;
-    padding: 12px 30px;
+    padding: 10px 26px;
     cursor: pointer;
     transition: all 0.3s ease;
     outline: none;
@@ -132,11 +133,12 @@ body {
 }
 
 /* Painel de carregamento */
+
 .loading-panel {
     width: 100%;
-    max-width: 520px;
-    margin-top: 28px;
-    animation: panel-in 0.45s ease;
+    max-width: 420px;
+    margin-top: 10px;
+    animation: panel-in 0.35s ease;
 }
 
 .loading-panel[hidden] {
@@ -156,31 +158,31 @@ body {
 
 .loading-card {
     background: rgba(255, 255, 255, 0.92);
-    border: 1px solid rgba(66, 66, 66, 0.15);
-    border-radius: 20px;
-    padding: 28px 24px 24px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
-    backdrop-filter: blur(6px);
+    border: 1px solid rgba(66, 66, 66, 0.12);
+    border-radius: 16px;
+    padding: 16px 18px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    backdrop-filter: blur(4px);
 }
 
 .loading-icon {
     position: relative;
-    width: 56px;
-    height: 56px;
-    margin: 0 auto 18px;
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 10px;
 }
 
 .orbit {
     position: absolute;
     inset: 0;
-    border: 3px solid transparent;
+    border: 2px solid transparent;
     border-top-color: #424242;
     border-radius: 50%;
     animation: spin 1.1s linear infinite;
 }
 
 .orbit--delay {
-    inset: 8px;
+    inset: 6px;
     border-top-color: rgba(66, 66, 66, 0.35);
     animation-duration: 1.6s;
     animation-direction: reverse;
@@ -188,7 +190,7 @@ body {
 
 .orbit-core {
     position: absolute;
-    inset: 20px;
+    inset: 14px;
     background: #424242;
     border-radius: 50%;
     animation: pulse-core 1.4s ease-in-out infinite;
@@ -212,19 +214,19 @@ body {
 }
 
 .loading-title {
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     font-weight: 700;
     color: #424242;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
 }
 
 .progress-track {
     position: relative;
-    height: 14px;
+    height: 9px;
     background: #e8e8e8;
     border-radius: 999px;
     overflow: hidden;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 
 .progress-fill {
@@ -240,7 +242,7 @@ body {
         #2e2e2e 100%
     );
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 0 12px rgba(66, 66, 66, 0.35);
+    box-shadow: 0 0 8px rgba(66, 66, 66, 0.25);
 }
 
 .progress-glow {
@@ -282,17 +284,17 @@ body {
 }
 
 .loading-stats {
-    font-size: 0.9rem;
+    font-size: 0.82rem;
     color: #616161;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
 }
 
 .loading-tip {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     color: #757575;
     font-style: italic;
-    min-height: 2.6em;
-    line-height: 1.35;
+    min-height: 1.8em;
+    line-height: 1.2;
     opacity: 0;
     transition: opacity 0.35s ease;
 }
@@ -304,13 +306,13 @@ body {
 .loading-dots {
     display: flex;
     justify-content: center;
-    gap: 8px;
-    margin-top: 14px;
+    gap: 6px;
+    margin-top: 8px;
 }
 
 .loading-dots span {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     background: #424242;
     border-radius: 50%;
     animation: dot-bounce 1.2s ease-in-out infinite;
@@ -330,36 +332,50 @@ body {
         opacity: 0.35;
     }
     40% {
-        transform: translateY(-10px);
+        transform: translateY(-6px);
         opacity: 1;
     }
 }
 
 @media (max-width: 768px) {
-    .container {
-        padding: 20px;
+
+    body {
+        overflow-y: auto;
     }
-    
+
+    .container {
+        padding: 18px;
+    }
+
     .logo {
         position: relative;
         top: auto;
         left: auto;
         text-align: center;
-        margin-bottom: 0px;
+        margin-bottom: 6px;
     }
-    
+
     .logo img {
-        max-width: 150px;
+        max-width: 140px;
     }
-    
+
+    .content {
+        justify-content: flex-start;
+        padding-top: 10px;
+    }
+
     .title-image {
-        max-width: 40%;
-        height: auto;
-        margin-bottom: 0px;
+        max-width: 70%;
+        margin-bottom: 0;
     }
-    
+
     .instructions {
-        font-size: 1rem;
-        margin-bottom: 5px;
+        font-size: 0.9rem;
+        margin-bottom: 12px;
+        line-height: 1.4;
+    }
+
+    .loading-panel {
+        max-width: 100%;
     }
 }
