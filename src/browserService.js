@@ -1,25 +1,27 @@
+const fs = require('fs');
 const puppeteer = require('puppeteer');
 
 async function createBrowser() {
+    const executablePath = puppeteer.executablePath();
 
-    const executablePath =
-        puppeteer.executablePath();
+    if (!fs.existsSync(executablePath)) {
+        throw new Error(
+            `Chrome não encontrado em ${executablePath}. ` +
+                'No Render, use build "npm install" e faça deploy com "Clear build cache".'
+        );
+    }
 
-    console.log(
-        'PUPPETEER EXECUTABLE:',
-        executablePath
-    );
+    console.log('PUPPETEER EXECUTABLE:', executablePath);
 
-    return await puppeteer.launch({
-
+    return puppeteer.launch({
         headless: true,
-
         executablePath,
-
         args: [
             '--no-sandbox',
-            '--disable-setuid-sandbox'
-        ]
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+        ],
     });
 }
 
