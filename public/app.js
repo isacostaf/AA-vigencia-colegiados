@@ -108,17 +108,25 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function showLoadingPanel() {
+        uploadBtn.style.display = 'none';
+
         loadingPanel.hidden = false;
         progressTrack.classList.add('progress-track--indeterminate');
         progressFill.style.width = '0%';
+
         loadingTitle.textContent = 'Enviando arquivo...';
         loadingStats.textContent = 'Preparando tudo';
+
         startTipRotation();
     }
 
     function hideLoadingPanel() {
+        uploadBtn.style.display = 'inline-block';
+
         loadingPanel.hidden = true;
+
         stopTipRotation();
+
         progressTrack.classList.remove('progress-track--indeterminate');
     }
 
