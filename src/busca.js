@@ -90,7 +90,8 @@ async function busca_colegiado(
     await page.goto(
         'https://mdlegis.defesa.gov.br/pesquisar_normas/',
         {
-            waitUntil: 'networkidle2'
+            waitUntil: 'domcontentloaded',
+            timeout: 60_000,
         }
     );
 
