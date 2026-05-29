@@ -106,6 +106,14 @@ body {
     transform: scale(0.98);
 }
 
+.progress-indicator {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 0.95rem;
+    color: #424242;
+    margin-top: 16px;
+    max-width: 600px;
+}
+
 @media (max-width: 768px) {
     .container {
         padding: 20px;

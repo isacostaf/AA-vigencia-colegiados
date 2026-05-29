@@ -1,19 +1,17 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const uploadBtn = document.getElementById('uploadBtn');
     const fileInput = document.getElementById('fileInput');
-    const content = document.querySelector('.content');
-    
-    uploadBtn.addEventListener('click', function() {
+
+    uploadBtn.addEventListener('click', function () {
         fileInput.click();
     });
-    
-    fileInput.addEventListener('change', function(event) {
-        const file = event.target.files[0];
-        
+
+    fileInput.addEventListener('change', function () {
+        const file = fileInput.files[0];
+
         if (file) {
-            const fileName = file.name;
-            const fileExtension = fileName.split('.').pop().toLowerCase();
-            
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+
             if (fileExtension === 'xlsx') {
                 uploadFile(file);
             } else {
@@ -22,114 +20,172 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-    
-    function uploadFile(file) {
+
+    async function parseJsonResponse(response) {
+        const text = await response.text();
+
+        if (!text) {
+            throw new Error(
+                response.status === 502 || response.status === 504
+                    ? 'O servidor demorou demais para responder. Tente novamente em instantes.'
+                    : 'Resposta vazia do servidor.'
+            );
+        }
+
+        try {
+            return JSON.parse(text);
+        } catch {
+            throw new Error('Resposta inválida do servidor.');
+        }
+    }
+
+    function setProgress(message) {
+        let el = document.getElementById('progressIndicator');
+
+        if (!el) {
+            el = document.createElement('p');
+            el.id = 'progressIndicator';
+            el.className = 'progress-indicator';
+            uploadBtn.parentNode.insertBefore(el, uploadBtn.nextSibling);
+        }
+
+        el.textContent = message;
+    }
+
+    function clearProgress() {
+        const el = document.getElementById('progressIndicator');
+        if (el) {
+            el.remove();
+        }
+    }
+
+    function resetUploadButton() {
+        uploadBtn.textContent = 'Inserir Arquivo';
+        uploadBtn.style.backgroundColor = 'transparent';
+        uploadBtn.style.color = '#424242';
+        uploadBtn.disabled = false;
+        uploadBtn.style.cursor = 'pointer';
+    }
+
+    function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async function pollJob(jobId) {
+        while (true) {
+            const response = await fetch(`/api/jobs/${jobId}`);
+            const data = await parseJsonResponse(response);
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Erro ao consultar status');
+            }
+
+            if (data.status === 'completed') {
+                return data;
+            }
+
+            if (data.status === 'failed') {
+                throw new Error(data.error || 'Falha no processamento');
+            }
+
+            if (data.total > 0) {
+                setProgress(`Processando linha ${data.progress} de ${data.total}...`);
+                uploadBtn.textContent = `${data.progress}/${data.total} linhas`;
+            } else {
+                setProgress('Iniciando processamento...');
+                uploadBtn.textContent = 'Preparando...';
+            }
+
+            await sleep(2000);
+        }
+    }
+
+    async function uploadFile(file) {
         const formData = new FormData();
         formData.append('file', file);
 
-        // Mostrar estado de carregamento
         uploadBtn.textContent = 'Enviando arquivo...';
         uploadBtn.disabled = true;
         uploadBtn.style.cursor = 'not-allowed';
 
-        // Remover botão de download anterior se existir
         const existingDownloadBtn = document.getElementById('downloadBtn');
         if (existingDownloadBtn) {
             existingDownloadBtn.remove();
         }
+        clearProgress();
 
-        // Remover indicador de progresso anterior se existir
-        const existingProgress = document.getElementById('progressIndicator');
-        if (existingProgress) {
-            existingProgress.remove();
-        }
+        try {
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData,
+            });
 
-        fetch('/upload', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
+            const uploadData = await parseJsonResponse(response);
 
-                uploadBtn.textContent = 'Arquivo processado!';
-                uploadBtn.style.backgroundColor = '#424242';
-                uploadBtn.style.color = 'white';
-
-                const downloadBtn = document.createElement('button');
-
-                downloadBtn.id = 'downloadBtn';
-                downloadBtn.className = 'download-btn';
-
-                downloadBtn.textContent = 'Baixar Resultados';
-
-                downloadBtn.onclick = function() {
-                    window.location.href = data.downloadUrl;
-                };
-
-                uploadBtn.parentNode.insertBefore(
-                    downloadBtn,
-                    uploadBtn.nextSibling
+            if (!response.ok || !uploadData.jobId) {
+                throw new Error(
+                    uploadData.details || uploadData.error || 'Erro ao enviar arquivo'
                 );
-
-                // reativa botão
-                uploadBtn.disabled = false;
-                uploadBtn.style.cursor = 'pointer';
-
-                // reset automático
-                setTimeout(() => {
-
-                    uploadBtn.textContent = 'Inserir Arquivo';
-                    uploadBtn.style.backgroundColor = 'transparent';
-                    uploadBtn.style.color = '#424242';
-
-                    if (downloadBtn) {
-                        downloadBtn.remove();
-                    }
-
-                }, 10000);
-
-            } else {
-                throw new Error(data.details || data.error || 'Erro desconhecido');
             }
-        })
 
+            setProgress('Arquivo recebido. Processando em segundo plano...');
+            uploadBtn.textContent = 'Processando...';
 
-        .catch(error => {
+            const result = await pollJob(uploadData.jobId);
+
+            uploadBtn.textContent = 'Arquivo processado!';
+            uploadBtn.style.backgroundColor = '#424242';
+            uploadBtn.style.color = 'white';
+            clearProgress();
+
+            const downloadBtn = document.createElement('button');
+            downloadBtn.id = 'downloadBtn';
+            downloadBtn.className = 'download-btn';
+            downloadBtn.textContent = 'Baixar Resultados';
+            downloadBtn.onclick = function () {
+                window.location.href = result.downloadUrl;
+            };
+
+            uploadBtn.parentNode.insertBefore(downloadBtn, uploadBtn.nextSibling);
+
+            resetUploadButton();
+            uploadBtn.textContent = 'Arquivo processado!';
+            uploadBtn.style.backgroundColor = '#424242';
+            uploadBtn.style.color = 'white';
+
+            setTimeout(() => {
+                resetUploadButton();
+                if (downloadBtn.parentNode) {
+                    downloadBtn.remove();
+                }
+            }, 30000);
+        } catch (error) {
             console.error('Erro:', error);
             alert('Erro ao processar arquivo: ' + error.message);
-
-            // Reset do botão
-            uploadBtn.textContent = 'Inserir Arquivo';
-            uploadBtn.style.backgroundColor = 'transparent';
-            uploadBtn.style.color = '#424242';
-            uploadBtn.disabled = false;
-            uploadBtn.style.cursor = 'pointer';
-        });
+            clearProgress();
+            resetUploadButton();
+        }
 
         fileInput.value = '';
     }
-    
-    // Prevenir comportamento padrão de arrastar e soltar
-    document.addEventListener('dragover', function(e) {
+
+    document.addEventListener('dragover', function (e) {
         e.preventDefault();
         e.stopPropagation();
     });
-    
-    document.addEventListener('drop', function(e) {
+
+    document.addEventListener('drop', function (e) {
         e.preventDefault();
         e.stopPropagation();
-        
+
         const files = e.dataTransfer.files;
         if (files.length > 0) {
             const file = files[0];
-            const fileName = file.name;
-            const fileExtension = fileName.split('.').pop().toLowerCase();
-            
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+
             if (fileExtension === 'xlsx') {
                 fileInput.files = files;
-                const event = new Event('change', { bubbles: true });
-                fileInput.dispatchEvent(event);
+                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
             } else {
                 alert('Por favor, selecione um arquivo .xlsx válido.');
             }
