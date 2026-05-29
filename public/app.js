@@ -1,9 +1,33 @@
 document.addEventListener('DOMContentLoaded', function () {
     const uploadBtn = document.getElementById('uploadBtn');
     const fileInput = document.getElementById('fileInput');
+    const loadingPanel = document.getElementById('loadingPanel');
+    const loadingTitle = document.getElementById('loadingTitle');
+    const loadingStats = document.getElementById('loadingStats');
+    const loadingTip = document.getElementById('loadingTip');
+    const progressTrack = document.getElementById('progressTrack');
+    const progressFill = document.getElementById('progressFill');
+
+    const LOADING_TIPS = [
+        'Cada linha é uma portaria sendo conferida no MD Legis...',
+        'O robô está lendo normas para você — quase lá!',
+        'Planilhas grandes merecem paciência (e um café).',
+        'Enquanto isso, respire: o sistema não vai desistir.',
+        'Verificando vigência, uma portaria de cada vez.',
+        'Se piscar, a barra continua andando sem você.',
+        'Dados oficiais levam tempo — estamos no caminho certo.',
+        'Quanto mais linhas, mais herói você é por esperar.',
+        'O Ministério da Defesa agradece sua calma.',
+        'Quase como fila de banco, só que digital.',
+    ];
+
+    let tipInterval = null;
+    let tipIndex = 0;
 
     uploadBtn.addEventListener('click', function () {
-        fileInput.click();
+        if (!uploadBtn.disabled) {
+            fileInput.click();
+        }
     });
 
     fileInput.addEventListener('change', function () {
@@ -39,24 +63,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function setProgress(message) {
-        let el = document.getElementById('progressIndicator');
-
-        if (!el) {
-            el = document.createElement('p');
-            el.id = 'progressIndicator';
-            el.className = 'progress-indicator';
-            uploadBtn.parentNode.insertBefore(el, uploadBtn.nextSibling);
-        }
-
-        el.textContent = message;
-    }
-
-    function clearProgress() {
-        const el = document.getElementById('progressIndicator');
-        if (el) {
-            el.remove();
-        }
+    function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
     function resetUploadButton() {
@@ -67,8 +75,89 @@ document.addEventListener('DOMContentLoaded', function () {
         uploadBtn.style.cursor = 'pointer';
     }
 
-    function sleep(ms) {
-        return new Promise((resolve) => setTimeout(resolve, ms));
+    function setUploadBusy(label) {
+        uploadBtn.textContent = label;
+        uploadBtn.disabled = true;
+        uploadBtn.style.cursor = 'not-allowed';
+        uploadBtn.style.backgroundColor = 'transparent';
+        uploadBtn.style.color = '#424242';
+    }
+
+    function rotateTip() {
+        loadingTip.classList.remove('loading-tip--visible');
+        setTimeout(() => {
+            loadingTip.textContent = LOADING_TIPS[tipIndex % LOADING_TIPS.length];
+            tipIndex++;
+            loadingTip.classList.add('loading-tip--visible');
+        }, 280);
+    }
+
+    function startTipRotation() {
+        tipIndex = Math.floor(Math.random() * LOADING_TIPS.length);
+        loadingTip.textContent = LOADING_TIPS[tipIndex];
+        tipIndex++;
+        loadingTip.classList.add('loading-tip--visible');
+        tipInterval = setInterval(rotateTip, 4500);
+    }
+
+    function stopTipRotation() {
+        if (tipInterval) {
+            clearInterval(tipInterval);
+            tipInterval = null;
+        }
+    }
+
+    function showLoadingPanel() {
+        loadingPanel.hidden = false;
+        progressTrack.classList.add('progress-track--indeterminate');
+        progressFill.style.width = '0%';
+        loadingTitle.textContent = 'Enviando arquivo...';
+        loadingStats.textContent = 'Preparando tudo';
+        startTipRotation();
+    }
+
+    function hideLoadingPanel() {
+        loadingPanel.hidden = true;
+        stopTipRotation();
+        progressTrack.classList.remove('progress-track--indeterminate');
+    }
+
+    function updateLoadingProgress(progress, total) {
+        if (total > 0) {
+            progressTrack.classList.remove('progress-track--indeterminate');
+            const percent = Math.min(100, Math.round((progress / total) * 100));
+            progressFill.style.width = `${percent}%`;
+            loadingTitle.textContent = 'Consultando portarias no MD Legis';
+            loadingStats.textContent = `Linha ${progress} de ${total} · ${percent}% concluído`;
+        } else {
+            progressTrack.classList.add('progress-track--indeterminate');
+            progressFill.style.width = '35%';
+            loadingTitle.textContent = 'Iniciando o processamento';
+            loadingStats.textContent = 'Lendo planilha e abrindo o navegador...';
+        }
+    }
+
+    function showDownloadButton(downloadUrl, fileName) {
+        let downloadBtn = document.getElementById('downloadBtn');
+
+        if (!downloadBtn) {
+            downloadBtn = document.createElement('a');
+            downloadBtn.id = 'downloadBtn';
+            downloadBtn.className = 'download-btn';
+            uploadBtn.parentNode.appendChild(downloadBtn);
+        }
+
+        downloadBtn.href = downloadUrl;
+        downloadBtn.download = fileName || 'resultado.xlsx';
+        downloadBtn.textContent = 'Baixar Resultados';
+        downloadBtn.hidden = false;
+    }
+
+    function hideDownloadButton() {
+        const downloadBtn = document.getElementById('downloadBtn');
+        if (downloadBtn) {
+            downloadBtn.hidden = true;
+        }
     }
 
     async function pollJob(jobId) {
@@ -88,14 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error(data.error || 'Falha no processamento');
             }
 
-            if (data.total > 0) {
-                setProgress(`Processando linha ${data.progress} de ${data.total}...`);
-                uploadBtn.textContent = `${data.progress}/${data.total} linhas`;
-            } else {
-                setProgress('Iniciando processamento...');
-                uploadBtn.textContent = 'Preparando...';
-            }
-
+            updateLoadingProgress(data.progress, data.total);
             await sleep(2000);
         }
     }
@@ -104,15 +186,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const formData = new FormData();
         formData.append('file', file);
 
-        uploadBtn.textContent = 'Enviando arquivo...';
-        uploadBtn.disabled = true;
-        uploadBtn.style.cursor = 'not-allowed';
-
-        const existingDownloadBtn = document.getElementById('downloadBtn');
-        if (existingDownloadBtn) {
-            existingDownloadBtn.remove();
-        }
-        clearProgress();
+        hideDownloadButton();
+        setUploadBusy('Enviando...');
+        showLoadingPanel();
 
         try {
             const response = await fetch('/upload', {
@@ -128,41 +204,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 );
             }
 
-            setProgress('Arquivo recebido. Processando em segundo plano...');
-            uploadBtn.textContent = 'Processando...';
+            loadingTitle.textContent = 'Arquivo recebido!';
+            loadingStats.textContent = 'Processamento em andamento no servidor';
 
             const result = await pollJob(uploadData.jobId);
 
-            uploadBtn.textContent = 'Arquivo processado!';
-            uploadBtn.style.backgroundColor = '#424242';
-            uploadBtn.style.color = 'white';
-            clearProgress();
-
-            const downloadBtn = document.createElement('button');
-            downloadBtn.id = 'downloadBtn';
-            downloadBtn.className = 'download-btn';
-            downloadBtn.textContent = 'Baixar Resultados';
-            downloadBtn.onclick = function () {
-                window.location.href = result.downloadUrl;
-            };
-
-            uploadBtn.parentNode.insertBefore(downloadBtn, uploadBtn.nextSibling);
-
+            hideLoadingPanel();
             resetUploadButton();
-            uploadBtn.textContent = 'Arquivo processado!';
-            uploadBtn.style.backgroundColor = '#424242';
-            uploadBtn.style.color = 'white';
-
-            setTimeout(() => {
-                resetUploadButton();
-                if (downloadBtn.parentNode) {
-                    downloadBtn.remove();
-                }
-            }, 30000);
+            showDownloadButton(result.downloadUrl, result.fileName);
         } catch (error) {
             console.error('Erro:', error);
             alert('Erro ao processar arquivo: ' + error.message);
-            clearProgress();
+            hideLoadingPanel();
             resetUploadButton();
         }
 

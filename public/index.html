@@ -22,8 +22,30 @@
                 Atenção: É necessário que os dados da tabela comecem na terceira linha 
                 e que a coluna com as portarias esteja na terceira coluna.
             </p>
-            <button id="uploadBtn" class="upload-btn">Inserir Arquivo</button>
-            <input type="file" id="fileInput" accept=".xlsx" style="display: none;">
+            <div class="actions-group">
+                <button id="uploadBtn" class="upload-btn">Inserir Arquivo</button>
+                <input type="file" id="fileInput" accept=".xlsx" style="display: none;">
+            </div>
+
+            <div id="loadingPanel" class="loading-panel" hidden>
+                <div class="loading-card">
+                    <div class="loading-icon" aria-hidden="true">
+                        <span class="orbit"></span>
+                        <span class="orbit orbit--delay"></span>
+                        <span class="orbit-core"></span>
+                    </div>
+                    <p class="loading-title" id="loadingTitle">Preparando consulta...</p>
+                    <div class="progress-track" id="progressTrack">
+                        <div class="progress-fill" id="progressFill"></div>
+                        <div class="progress-glow"></div>
+                    </div>
+                    <p class="loading-stats" id="loadingStats">Aguarde um momento</p>
+                    <p class="loading-tip" id="loadingTip"></p>
+                    <div class="loading-dots" aria-hidden="true">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
     
